@@ -31,7 +31,7 @@ export default async function LandingPage() {
           <div className="w-10 h-10 bg-primary/10 rounded-xl flex items-center justify-center">
             <BookOpen className="w-5 h-5 text-primary" />
           </div>
-          <span className="font-semibold text-lg">Hifdzh</span>
+          <span className="font-semibold text-lg">Hifdh</span>
         </div>
         <Link href="/auth/login">
           <Button variant="outline" size="sm">Sign In</Button>

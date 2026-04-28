@@ -216,7 +216,7 @@ export function ProfileContent({ profile, email }: ProfileContentProps) {
 
       {/* Version */}
       <p className="text-center text-xs text-muted-foreground">
-        Hifdzh Tracker v1.0
+        Hifdh Tracker v1.0
       </p>
     </div>
   )

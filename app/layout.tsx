@@ -22,7 +22,7 @@ const sourceSerif4 = Source_Serif_4({
 })
 
 export const metadata: Metadata = {
-  title: 'Hifdzh Tracker - Quran Memorization',
+  title: 'Hifdh Tracker',
   description: 'Track your Quran memorization journey with daily goals, streaks, and progress insights',
   icons: {
     icon: [
