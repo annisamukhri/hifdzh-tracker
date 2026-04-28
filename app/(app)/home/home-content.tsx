@@ -38,6 +38,12 @@ export function HomeContent({ profile, ayahProgress, recentSessions }: HomeConte
     if (saved) setSelectedJuz(parseInt(saved))
   }, [])
 
+  useEffect(() => {
+    if (typeof window !== 'undefined' && window.location.search.includes('code=')) {
+      window.history.replaceState(null, '', window.location.pathname)
+    }
+  }, [])
+
   function selectJuz(juz: number) {
     setSelectedJuz(juz)
     setJuzOpen(false)
