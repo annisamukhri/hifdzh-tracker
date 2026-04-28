@@ -8,24 +8,27 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { BookOpen, Sun, Moon, Clock, Loader2, Check } from 'lucide-react'
 import type { TargetType } from '@/lib/types'
 
-const TARGET_OPTIONS: { type: TargetType; title: string; description: string; icon: React.ReactNode }[] = [
+const TARGET_OPTIONS: { type: TargetType; title: string; description: string; icon: React.ReactNode; dailyTarget: number }[] = [
   {
     type: 'one_ayah',
     title: 'One Ayah per Day',
     description: 'One ayah memorized per day at your own pace',
     icon: <BookOpen className="w-6 h-6" />,
+    dailyTarget: 1,
   },
   {
     type: 'morning_night',
     title: 'Morning & Night',
     description: 'One ayah memorized in each morning and night',
     icon: <div className="flex -space-x-1"><Sun className="w-5 h-5" /><Moon className="w-5 h-5" /></div>,
+    dailyTarget: 2,
   },
   {
     type: 'five_prayers',
     title: 'Five Daily Prayers',
     description: 'One ayah memorized after each of the 5 daily prayers',
     icon: <Clock className="w-6 h-6" />,
+    dailyTarget: 5,
   },
 ]
 
@@ -49,10 +52,22 @@ export default function OnboardingPage() {
       return
     }
 
+    const option = TARGET_OPTIONS.find(o => o.type === selectedTarget)!
+    const dailyTarget = option.dailyTarget
+
+    // Monday of the current week
+    const today = new Date()
+    const dayOfWeek = today.getDay()
+    const diffToMonday = (dayOfWeek === 0 ? -6 : 1 - dayOfWeek)
+    const monday = new Date(today)
+    monday.setDate(today.getDate() + diffToMonday)
+    const mondayStr = monday.toISOString().split('T')[0]
+
     const { error } = await supabase
       .from('profiles')
       .update({
         target_type: selectedTarget,
+        daily_target: dailyTarget,
         onboarding_completed: true,
       })
       .eq('id', user.id)
@@ -62,6 +77,18 @@ export default function OnboardingPage() {
       setLoading(false)
       return
     }
+
+    // Deactivate previous targets and insert new one
+    await supabase.from('targets').update({ is_active: false }).eq('user_id', user.id).eq('type', 'daily')
+    await supabase.from('targets').insert({
+      user_id: user.id,
+      type: 'daily',
+      target_value: dailyTarget,
+      unit: 'ayahs',
+      start_date: mondayStr,
+      is_active: true,
+      label: option.title,
+    })
 
     router.push('/home')
   }

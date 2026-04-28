@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import Link from 'next/link'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Flame, BookOpen, Clock, Play, Smartphone, ChevronDown } from 'lucide-react'
@@ -30,12 +30,13 @@ function getGreeting(): string {
 export function HomeContent({ profile, ayahProgress, recentSessions }: HomeContentProps) {
   const greeting = getGreeting()
   const firstName = profile?.full_name?.split(' ')[0] || 'there'
-  const [selectedJuz, setSelectedJuz] = useState<number | null>(() => {
-    if (typeof window === 'undefined') return null
-    const saved = localStorage.getItem('muhaffiz_selected_juz')
-    return saved ? parseInt(saved) : null
-  })
+  const [selectedJuz, setSelectedJuz] = useState<number | null>(null)
   const [juzOpen, setJuzOpen] = useState(false)
+
+  useEffect(() => {
+    const saved = localStorage.getItem('muhaffiz_selected_juz')
+    if (saved) setSelectedJuz(parseInt(saved))
+  }, [])
 
   function selectJuz(juz: number) {
     setSelectedJuz(juz)

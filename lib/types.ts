@@ -3,6 +3,7 @@
 export type TargetType = 'one_ayah' | 'morning_night' | 'five_prayers'
 export type SessionMode = 'physical' | 'digital'
 export type AyahStatus = 'memorized' | 'reviewing' | 'learning'
+export type Gender = 'male' | 'female' | 'prefer_not_to_say'
 
 export interface Profile {
   id: string
@@ -12,6 +13,8 @@ export interface Profile {
   onboarding_completed: boolean
   current_streak: number
   longest_streak: number
+  age: number | null
+  gender: Gender | null
   created_at: string
   updated_at: string
 }

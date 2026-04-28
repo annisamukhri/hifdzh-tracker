@@ -3,32 +3,47 @@
 import { useMemo, useState } from 'react'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Flame, Target, Clock, BookOpen, TrendingUp } from 'lucide-react'
-import type { Profile, Session, AyahProgress, SurahStats } from '@/lib/types'
+import type { Profile, Session, AyahProgress, SurahStats, Surah } from '@/lib/types'
 import { format, isSameDay, startOfWeek, endOfWeek, addDays } from 'date-fns'
 import { cn } from '@/lib/utils'
 import { ComposedChart, Bar, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts'
 import { getSurahByNumber, getSurahsForJuz } from '@/lib/quran-data'
 import { RadialHeatmap } from '@/components/radial-heatmap'
+import { SurahAyahEditor } from '@/components/ayah-editor/surah-ayah-editor'
 
 interface DashboardContentProps {
   profile: Profile | null
   sessions: Session[]
   ayahProgress: AyahProgress[]
   surahStats: SurahStats[]
+  targets: { target_value: number; start_date: string; end_date: string | null; is_active: boolean }[]
 }
 
-export function DashboardContent({ profile, sessions, ayahProgress, surahStats }: DashboardContentProps) {
+export function DashboardContent({ profile, sessions, ayahProgress: initialAyahProgress, surahStats, targets }: DashboardContentProps) {
   // W1=3 weeks ago, W2=2 weeks ago, W3=last week, W4=this week (default)
   const [selectedWeek, setSelectedWeek] = useState(3)
   const [radialMonth, setRadialMonth] = useState(new Date().getMonth())
   const [radialYear, setRadialYear] = useState(new Date().getFullYear())
   const [progressJuz, setProgressJuz] = useState<number | null>(null)
   const [progressJuzOpen, setProgressJuzOpen] = useState(false)
+  const [selectedSurah, setSelectedSurah] = useState<Surah | null>(null)
+  const [ayahProgress, setAyahProgress] = useState<AyahProgress[]>(initialAyahProgress)
 
   const weekOffset = selectedWeek - 3 // 0=this week, -1=last, -2=2 ago, -3=3 ago
   const weekStart = startOfWeek(addDays(new Date(), weekOffset * 7), { weekStartsOn: 1 })
   const weekEnd = endOfWeek(weekStart, { weekStartsOn: 1 })
-  const dailyTarget = profile?.daily_target || 1
+
+  // Derive daily_target from target_type as the source of truth fallback
+  const TARGET_TYPE_VALUES: Record<string, number> = { one_ayah: 1, morning_night: 2, five_prayers: 5 }
+  const profileDailyTarget = profile?.target_type
+    ? TARGET_TYPE_VALUES[profile.target_type] ?? profile?.daily_target ?? 1
+    : profile?.daily_target ?? 1
+
+  // Find the daily_target that was active on the Monday of the selected week.
+  // targets are ordered by start_date desc, so the first one whose start_date <= weekStart is the one in effect.
+  const weekStartStr = format(weekStart, 'yyyy-MM-dd')
+  const activeTarget = targets.find(t => t.start_date <= weekStartStr)
+  const dailyTarget = activeTarget?.target_value ?? profileDailyTarget
 
   const stats = useMemo(() => {
     const totalDurationSec = sessions.reduce((acc, s) => acc + s.duration_seconds, 0)
@@ -58,11 +73,12 @@ export function DashboardContent({ profile, sessions, ayahProgress, surahStats }
       const totalDuration = Math.round(daySessions.reduce((acc, s) => acc + s.duration_seconds, 0) / 60)
       return {
         day: format(date, 'EEE'),
-        target: Math.min(totalAyahs, dailyTarget),
-        extra: Math.max(0, totalAyahs - dailyTarget),
+        totalAyahs,
+        met: totalAyahs >= dailyTarget ? dailyTarget : 0,
+        extra: totalAyahs > dailyTarget ? totalAyahs - dailyTarget : 0,
+        notMet: totalAyahs < dailyTarget ? totalAyahs : 0,
         duration: totalDuration,
         sessions: daySessions.length,
-        totalAyahs,
       }
     })
   }, [sessions, dailyTarget, weekStart.getTime()])
@@ -118,7 +134,7 @@ export function DashboardContent({ profile, sessions, ayahProgress, surahStats }
                 {format(weekStart, 'MMM d')} – {format(weekEnd, 'MMM d')}
               </p>
               <p className="text-xs text-muted-foreground">
-                This Week&apos;s Plan: Standard ({dailyTarget} Ayah{dailyTarget > 1 ? 's' : ''}/Day)
+                This Week&apos;s Plan: {profile?.target_type === 'morning_night' ? 'Morning & Night' : profile?.target_type === 'five_prayers' ? 'Five Prayers' : 'Standard'} ({dailyTarget} Ayah{dailyTarget > 1 ? 's' : ''}/Day)
               </p>
             </div>
             <div className="flex items-center gap-1 bg-muted rounded-lg p-1 text-xs shrink-0">
@@ -154,14 +170,14 @@ export function DashboardContent({ profile, sessions, ayahProgress, surahStats }
                     <div className="bg-popover border border-border rounded-lg px-3 py-2 text-xs shadow-md">
                       <p className="font-semibold mb-1">{label} Session:</p>
                       <p>{d.duration} min total, {d.totalAyahs} ayahs</p>
-                      {d.extra > 0 && <p className="text-primary">({d.extra} extra)</p>}
                       <p>{d.sessions} session{d.sessions !== 1 ? 's' : ''}</p>
                     </div>
                   )
                 }}
               />
-              <Bar yAxisId="ayah" dataKey="target" stackId="a" fill="#1a5c55" radius={[0, 0, 4, 4]} maxBarSize={44} name="Target" />
-              <Bar yAxisId="ayah" dataKey="extra" stackId="a" fill="#4bbfb0" radius={[6, 6, 0, 0]} maxBarSize={44} name="Extra" />
+              <Bar yAxisId="ayah" dataKey="met" stackId="a" fill="#1a5c55" radius={[0, 0, 4, 4]} maxBarSize={44} name="Target Met" />
+              <Bar yAxisId="ayah" dataKey="extra" stackId="a" fill="#4bbfb0" radius={[4, 4, 0, 0]} maxBarSize={44} name="Extra" />
+              <Bar yAxisId="ayah" dataKey="notMet" stackId="a" fill="#4bbfb0" radius={[4, 4, 4, 4]} maxBarSize={44} name="Below Target" />
               <Line yAxisId="duration" type="monotone" dataKey="duration" stroke="#374151" strokeWidth={2}
                 dot={{ r: 4, fill: '#ffffff', stroke: '#374151', strokeWidth: 2 }}
                 label={{ position: 'top', fontSize: 10, formatter: (v: number) => v > 0 ? `${v}m` : '0m', fill: '#9ca3af' }}
@@ -176,7 +192,7 @@ export function DashboardContent({ profile, sessions, ayahProgress, surahStats }
             </div>
             <div className="flex items-center gap-1.5">
               <div className="w-3 h-3 rounded-sm" style={{ backgroundColor: '#4bbfb0' }} />
-              <span className="text-xs text-muted-foreground">Extra</span>
+              <span className="text-xs text-muted-foreground">Other</span>
             </div>
             <div className="flex items-center gap-1.5">
               <div className="w-4 h-0.5 bg-foreground/70" />
@@ -311,7 +327,11 @@ export function DashboardContent({ profile, sessions, ayahProgress, surahStats }
                 const pct = s.numberOfAyahs > 0 ? Math.round((memorized / s.numberOfAyahs) * 100) : 0
                 const isComplete = memorized >= s.numberOfAyahs
                 return (
-                  <div key={s.number} className="space-y-1.5">
+                  <div
+                    key={s.number}
+                    className="space-y-1.5 cursor-pointer rounded-lg px-2 py-1 -mx-2 hover:bg-muted/50 transition-colors"
+                    onClick={() => setSelectedSurah(s)}
+                  >
                     <div className="flex items-center justify-between gap-2">
                       <div className="min-w-0">
                         <span className="text-sm font-medium truncate block">{s.englishName}</span>
@@ -338,6 +358,19 @@ export function DashboardContent({ profile, sessions, ayahProgress, surahStats }
           )}
         </CardContent>
       </Card>
+
+      <SurahAyahEditor
+        surah={selectedSurah}
+        userId={profile?.id ?? ''}
+        initialProgress={ayahProgress.filter(a => a.surah_number === selectedSurah?.number)}
+        onClose={() => setSelectedSurah(null)}
+        onSaved={(updated) => {
+          setAyahProgress(prev => [
+            ...prev.filter(a => a.surah_number !== selectedSurah?.number),
+            ...updated,
+          ])
+        }}
+      />
     </div>
   )
 }
