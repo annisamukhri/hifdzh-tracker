@@ -60,16 +60,24 @@ export function ProfileContent({ profile, email }: ProfileContentProps) {
   async function handleDeleteAccount() {
     setDeleting(true)
     setDeleteError(null)
-    const res = await fetch('/api/delete-account', { method: 'DELETE' })
-    if (!res.ok) {
+
+    try {
+      const res = await fetch('/api/delete-account', { method: 'DELETE' })
       const data = await res.json()
-      setDeleteError(data.error ?? 'Failed to delete account')
+
+      if (!res.ok) {
+        setDeleteError(data.error ?? 'Failed to delete account')
+        setDeleting(false)
+        return
+      }
+
+      const supabase = createClient()
+      await supabase.auth.signOut()
+      router.push('/auth/login')
+    } catch {
+      setDeleteError('Network error. Please try again.')
       setDeleting(false)
-      return
     }
-    const supabase = createClient()
-    await supabase.auth.signOut()
-    router.push('/auth/login')
   }
 
   const targetInfo = profile?.target_type ? TARGET_LABELS[profile.target_type] : null

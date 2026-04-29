@@ -36,6 +36,11 @@ export function HomeContent({ profile, ayahProgress, recentSessions }: HomeConte
   useEffect(() => {
     const saved = localStorage.getItem('muhaffiz_selected_juz')
     if (saved) setSelectedJuz(parseInt(saved))
+
+    // Clean up OAuth code param from URL if present
+    if (window.location.search.includes('code=')) {
+      window.history.replaceState(null, '', window.location.pathname)
+    }
   }, [])
 
   useEffect(() => {
