@@ -1,9 +1,8 @@
 'use client'
 
-import { useState, useEffect } from 'react'
-import { useSearchParams } from 'next/navigation'
+import { useState, useEffect, Suspense } from 'react'
 import Link from 'next/link'
-import { useRouter } from 'next/navigation'
+import { useRouter, useSearchParams } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -11,7 +10,8 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { FieldGroup, Field, FieldLabel } from '@/components/ui/field'
 import { BookOpen, Loader2 } from 'lucide-react'
 
-export default function LoginPage() {
+// ✅ Pisahkan komponen yang pakai useSearchParams
+function LoginForm() {
   const searchParams = useSearchParams()
   const router = useRouter()
   const [email, setEmail] = useState('')
@@ -20,6 +20,7 @@ export default function LoginPage() {
   const [loading, setLoading] = useState(false)
   const [googleLoading, setGoogleLoading] = useState(false)
 
+  // Tampilkan error dari URL
   useEffect(() => {
     const urlError = searchParams.get('error')
     if (urlError) {
@@ -41,7 +42,7 @@ export default function LoginPage() {
       return
     }
 
-    // ✅ PERBAIKAN: Cek onboarding sebelum redirect
+    // Cek onboarding sebelum redirect
     const { data: { user } } = await supabase.auth.getUser()
     
     if (user) {
@@ -176,5 +177,18 @@ export default function LoginPage() {
         </CardContent>
       </Card>
     </div>
+  )
+}
+
+// ✅ Wrap dengan Suspense
+export default function LoginPage() {
+  return (
+    <Suspense fallback={
+      <div className="min-h-screen bg-background flex items-center justify-center">
+        <Loader2 className="w-8 h-8 animate-spin text-primary" />
+      </div>
+    }>
+      <LoginForm />
+    </Suspense>
   )
 }
