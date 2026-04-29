@@ -1,6 +1,7 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
+import { useSearchParams } from 'next/navigation'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
@@ -11,12 +12,20 @@ import { FieldGroup, Field, FieldLabel } from '@/components/ui/field'
 import { BookOpen, Loader2 } from 'lucide-react'
 
 export default function LoginPage() {
+  const searchParams = useSearchParams()
   const router = useRouter()
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [error, setError] = useState<string | null>(null)
   const [loading, setLoading] = useState(false)
   const [googleLoading, setGoogleLoading] = useState(false)
+
+  useEffect(() => {
+    const urlError = searchParams.get('error')
+    if (urlError) {
+      setError(decodeURIComponent(urlError))
+    }
+  }, [searchParams])
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
@@ -32,7 +41,26 @@ export default function LoginPage() {
       return
     }
 
-    router.push('/home')
+    // ✅ PERBAIKAN: Cek onboarding sebelum redirect
+    const { data: { user } } = await supabase.auth.getUser()
+    
+    if (user) {
+      const { data: profile } = await supabase
+        .from('profiles')
+        .select('onboarding_completed')
+        .eq('id', user.id)
+        .single()
+
+      if (!profile?.onboarding_completed) {
+        router.push('/onboarding')
+      } else {
+        router.push('/home')
+      }
+    } else {
+      router.push('/home')
+    }
+    
+    setLoading(false)
   }
 
   async function handleGoogleSignIn() {
