@@ -2,10 +2,9 @@
 
 import { useState, useRef, useEffect } from 'react'
 import { useChatSessions } from '@/hooks/use-chat-sessions'
-import { useMediaRecorder } from '@/hooks/use-media-recorder'
 import { Button } from '@/components/ui/button'
 import { ScrollArea } from '@/components/ui/scroll-area'
-import { MessageSquare, Plus, Menu, X, Send, Mic, MicOff, Trash2 } from 'lucide-react'
+import { MessageSquare, Plus, Menu, X, Send, Trash2 } from 'lucide-react'
 import ReactMarkdown from 'react-markdown'
 import rehypeSanitize from 'rehype-sanitize'
 import type { ChatSession, Message } from '@/lib/types'
@@ -21,7 +20,6 @@ function formatSessionDate(timestamp: number): string {
 
 export function ChatbotContent() {
   const { sessions, activeSessionId, createSession, setActiveSessionId, addMessage, replaceMessage, deleteSession } = useChatSessions()
-  const { isRecording, startRecording, stopRecording, permissionError } = useMediaRecorder()
 
   const [sidebarOpen, setSidebarOpen] = useState(false)
   const [input, setInput] = useState('')
@@ -36,11 +34,6 @@ export function ChatbotContent() {
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: 'smooth' })
   }, [activeSession?.messages.length])
-
-  // Show permissionError as error banner
-  useEffect(() => {
-    if (permissionError) setError(permissionError)
-  }, [permissionError])
 
   function handleNewSession() {
     const session = createSession()
@@ -98,45 +91,7 @@ export function ChatbotContent() {
     }
   }
 
-  async function handleRecordToggle() {
-    if (!activeSessionId) return
-    setError(null)
-
-    if (isRecording) {
-      const blob = await stopRecording()
-      const history = (activeSession?.messages ?? []).map((m) => ({ role: m.role, text: m.text }))
-      const formData = new FormData()
-      formData.append('audio', blob, 'recording.webm')
-      formData.append('history', JSON.stringify(history))
-
-      // Add a temporary "analyzing" placeholder message
-      const placeholderId = crypto.randomUUID()
-      const placeholderMsg: Message = {
-        id: placeholderId,
-        role: 'bot',
-        text: '🎙️ Analyzing your recitation...',
-        timestamp: Date.now(),
-      }
-      addMessage(activeSessionId, placeholderMsg)
-
-      setIsLoading(true)
-      try {
-        const res = await fetch('/api/chat-audio', { method: 'POST', body: formData })
-        if (!res.ok) throw new Error(`Request failed: ${res.status}`)
-        const data = await res.json()
-        // Replace the placeholder with the real response
-        replaceMessage(activeSessionId, placeholderId, data.result)
-      } catch (err) {
-        setError(err instanceof Error ? err.message : 'Audio upload failed.')
-      } finally {
-        setIsLoading(false)
-      }
-    } else {
-      await startRecording()
-    }
-  }
-
-  // Empty state — no sessions at all
+  // Empty state
   if (sessions.length === 0) {
     return (
       <div className="flex flex-col items-center justify-center h-[calc(100vh-6rem)] gap-4 px-6 text-center">
@@ -316,19 +271,6 @@ export function ChatbotContent() {
             disabled={isLoading || !activeSession}
             className="flex-1 rounded-full border bg-background px-4 py-2 text-sm outline-none focus:ring-2 focus:ring-ring disabled:opacity-50"
           />
-
-          {/* Mic button */}
-          <Button
-            type="button"
-            size="icon"
-            variant={isRecording ? 'destructive' : 'outline'}
-            onClick={handleRecordToggle}
-            disabled={isLoading && !isRecording}
-            aria-label={isRecording ? 'Stop recording' : 'Start recording'}
-            className={isRecording ? 'animate-pulse' : ''}
-          >
-            {isRecording ? <MicOff className="w-4 h-4" /> : <Mic className="w-4 h-4" />}
-          </Button>
 
           {/* Send button */}
           <Button

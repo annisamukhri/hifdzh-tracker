@@ -27,6 +27,9 @@ When the user wants to practice:
 - Always include Arabic with Tashkeel when showing ayahs.
 - Be concise and encouraging.`
 
+// Fungsi pembantu untuk memberikan jeda waktu (delay)
+const delay = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms))
+
 export async function POST(req: NextRequest) {
   const apiKey = process.env.GEMINI_API_KEY
   if (!apiKey) {
@@ -45,26 +48,64 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: 'conversation must be an array with at least 1 item' }, { status: 400 })
   }
 
-  const contents = (conversation as Array<{ role: string; text: string }>).map((msg) => ({
+  // ==========================================
+  // IMPLEMENTASI 1: PANGKAS RIWAYAT CHAT
+  // ==========================================
+  // Mengambil maksimal 3 pesan terakhir agar beban token tidak bengkak di server Google
+  const maxHistory = 3
+  const trimmedConversation = conversation.slice(-maxHistory)
+
+  const contents = (trimmedConversation as Array<{ role: string; text: string }>).map((msg) => ({
     role: msg.role === 'bot' ? 'model' : 'user',
     parts: [{ text: msg.text }],
   }))
 
-  try {
-    const ai = new GoogleGenAI({ apiKey })
-    const response = await ai.models.generateContent({
-      model: 'gemini-2.5-flash-lite',
-      contents,
-      config: {
-        temperature: 0.9,
-        systemInstruction: SYSTEM_INSTRUCTION,
-      },
-    })
+  const ai = new GoogleGenAI({ apiKey })
 
-    const result = response.text ?? ''
-    return NextResponse.json({ result })
-  } catch (err) {
-    const message = err instanceof Error ? err.message : 'Unknown error'
-    return NextResponse.json({ error: message }, { status: 500 })
+  // Konfigurasi Retry
+  const MAX_RETRIES = 3
+  let attempt = 0
+  let baseDelay = 2000 // Jeda awal 2 detik
+
+  // ==========================================
+  // IMPLEMENTASI 2: RETRY MECHANISM LOOP
+  // ==========================================
+  while (attempt < MAX_RETRIES) {
+    try {
+      const response = await ai.models.generateContent({
+        model: 'gemini-2.5-flash-lite', 
+        contents,
+        config: {
+          temperature: 0.9,
+          systemInstruction: SYSTEM_INSTRUCTION,
+        },
+      })
+
+      const result = response.text ?? ''
+      return NextResponse.json({ result })
+
+    } catch (err) {
+      attempt++
+      const message = err instanceof Error ? err.message : 'Unknown error'
+      
+      // Deteksi apakah error disebabkan oleh kelebihan beban server (503 / high demand)
+      const isRateLimitOrAvailableError = 
+        message.includes('503') || 
+        message.toLowerCase().includes('high demand') || 
+        message.toLowerCase().includes('unavailable')
+
+      // Jika error karena server sibuk dan jatah retry masih ada, lakukan jeda lalu ulangi
+      if (isRateLimitOrAvailableError && attempt < MAX_RETRIES) {
+        console.warn(`Gemini API sibuk (503). Percobaan ke-${attempt} gagal. Mencoba kembali dalam ${baseDelay}ms...`)
+        await delay(baseDelay)
+        baseDelay *= 2 // Menambah jeda waktu dua kali lipat di tiap percobaan berikutnya (Exponential Backoff)
+        continue
+      }
+
+      // Jika errornya bukan 503, atau batas retry sudah habis, lemparkan error ke client
+      return NextResponse.json({ error: message }, { status: 500 })
+    
+    }
   }
+  return NextResponse.json({ error: 'Server is busy, please try зgain later.' }, { status: 503 })
 }
