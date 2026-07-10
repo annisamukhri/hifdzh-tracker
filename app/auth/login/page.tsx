@@ -10,7 +10,6 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { FieldGroup, Field, FieldLabel } from '@/components/ui/field'
 import { BookOpen, Loader2 } from 'lucide-react'
 
-// ✅ Pisahkan komponen yang pakai useSearchParams
 function LoginForm() {
   const searchParams = useSearchParams()
   const router = useRouter()
@@ -20,7 +19,6 @@ function LoginForm() {
   const [loading, setLoading] = useState(false)
   const [googleLoading, setGoogleLoading] = useState(false)
 
-  // Tampilkan error dari URL
   useEffect(() => {
     const urlError = searchParams.get('error')
     if (urlError) {
@@ -180,7 +178,6 @@ function LoginForm() {
   )
 }
 
-// ✅ Wrap dengan Suspense
 export default function LoginPage() {
   return (
     <Suspense fallback={

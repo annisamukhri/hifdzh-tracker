@@ -1,6 +1,7 @@
 import type { Metadata } from 'next'
 import './globals.css'
 import { Geist, Geist_Mono, Source_Serif_4 } from 'next/font/google'
+import { ThemeProvider } from '@/components/theme-provider'
 
 // Initialize fonts
 const geist = Geist({ 
@@ -52,9 +53,12 @@ export default function RootLayout({
     <html 
       lang="en" 
       className={`${geist.variable} ${geistMono.variable} ${sourceSerif4.variable} bg-background`}
+      suppressHydrationWarning
     >
       <body className="font-sans antialiased">
-        {children}
+        <ThemeProvider attribute="class" defaultTheme="system" enableSystem>
+          {children}
+        </ThemeProvider>
       </body>
     </html>
   )

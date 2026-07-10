@@ -1,9 +1,10 @@
 'use client'
 
 import { useState, useEffect } from 'react'
+import { useTheme } from 'next-themes'
 import Link from 'next/link'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
-import { Flame, BookOpen, Clock, Play, Smartphone, ChevronDown } from 'lucide-react'
+import { Flame, BookOpen, Clock, Play, Smartphone, ChevronDown, Sun, Moon } from 'lucide-react'
 import type { Profile, Session } from '@/lib/types'
 import { getSurahsForJuz } from '@/lib/quran-data'
 import { formatDistanceToNow } from 'date-fns'
@@ -32,6 +33,7 @@ export function HomeContent({ profile, ayahProgress, recentSessions }: HomeConte
   const firstName = profile?.full_name?.split(' ')[0] || 'there'
   const [selectedJuz, setSelectedJuz] = useState<number | null>(null)
   const [juzOpen, setJuzOpen] = useState(false)
+  const { theme, setTheme } = useTheme()
 
   useEffect(() => {
     const saved = localStorage.getItem('muhaffiz_selected_juz')
@@ -74,9 +76,21 @@ export function HomeContent({ profile, ayahProgress, recentSessions }: HomeConte
           <h1 className="text-2xl font-bold">{greeting}, {firstName}</h1>
           <p className="text-muted-foreground">Continue your memorization journey</p>
         </div>
-        <div className="flex items-center gap-1.5 bg-accent/20 px-3 py-1.5 rounded-full">
-          <Flame className="w-5 h-5 text-accent-foreground" />
-          <span className="font-bold text-accent-foreground">{profile?.current_streak || 0}</span>
+        <div className="flex items-center gap-2">
+          <button
+            onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}
+            className="w-9 h-9 flex items-center justify-center rounded-full bg-muted hover:bg-muted/80 transition-colors"
+            aria-label="Toggle dark mode"
+          >
+            {theme === 'dark'
+              ? <Sun className="w-4 h-4 text-muted-foreground" />
+              : <Moon className="w-4 h-4 text-muted-foreground" />
+            }
+          </button>
+          <div className="flex items-center gap-1.5 bg-accent/20 px-3 py-1.5 rounded-full">
+            <Flame className="w-5 h-5 text-accent-foreground" />
+            <span className="font-bold text-accent-foreground">{profile?.current_streak || 0}</span>
+          </div>
         </div>
       </div>
 

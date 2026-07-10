@@ -1,33 +1,41 @@
-# hifdzh tracker
+# Hifdh Tracker
 
-This is a [Next.js](https://nextjs.org) project bootstrapped with [v0](https://v0.app).
+A personal Quran memorization tracker built to help you stay consistent with your daily hifdh goals. Track your progress ayah by ayah, maintain streaks, and get a clear picture of how your memorization is going week by week.
 
-## Built with v0
+## Features
 
-This repository is linked to a [v0](https://v0.app) project. You can continue developing by visiting the link below -- start new chats to make changes, and v0 will push commits directly to this repo. Every merge to `main` will automatically deploy.
+- **Daily Target** — Set a memorization goal (1, 2, or 5 ayahs/day) based on your preferred schedule. Target changes are gated to Mondays to encourage intentional weekly planning.
+- **Session Tracking** — Log memorization sessions using a physical or digital Quran, with per-surah progress tracking.
+- **Dashboard** — Weekly progress chart, monthly radial heatmap, and surah-level breakdown by Juz.
+- **Streak System** — Stay motivated with current and longest streak tracking.
+- **AI Chatbot** — Ask questions about your memorization journey powered by Gemini/Groq.
+- **Google & Email Auth** — Sign in with Google or email/password via Supabase Auth.
+- **Profile** — Edit your name, age, and gender. Delete account when needed.
+- **Dark Mode** — Toggle between light and dark theme from the home screen.
 
-[Continue working on v0 →](https://v0.app/chat/projects/prj_84S5c63wp19lGdZr9GFCUV1uQ4ii)
+## Tech Stack
+
+- [Next.js 15](https://nextjs.org) — App Router
+- [Supabase](https://supabase.com) — Auth, database, and row-level security
+- [Tailwind CSS](https://tailwindcss.com) + [shadcn/ui](https://ui.shadcn.com) — UI components
+- [Recharts](https://recharts.org) — Weekly progress charts
+- [next-themes](https://github.com/pacocoursey/next-themes) — Dark mode
 
 ## Getting Started
 
-First, run the development server:
-
 ```bash
-npm run dev
-# or
-yarn dev
-# or
+pnpm install
 pnpm dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Open [http://localhost:3000](http://localhost:3000) in your browser.
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+Copy `.env.example` to `.env` and fill in your Supabase and API keys:
 
-## Learn More
-
-To learn more, take a look at the following resources:
-
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
-- [v0 Documentation](https://v0.app/docs) - learn about v0 and how to use it.
+```
+NEXT_PUBLIC_SUPABASE_URL=
+NEXT_PUBLIC_SUPABASE_ANON_KEY=
+SUPABASE_SERVICE_ROLE_KEY=
+GEMINI_API_KEY=
+GROQ_API_KEY=
+```

@@ -15,31 +15,36 @@ export async function GET(request: NextRequest) {
       return NextResponse.redirect(`${origin}/auth/login?error=${encodeURIComponent(error.message)}`)
     }
 
-    // Check if user has completed onboarding
+    // Get user
     const { data: { user } } = await supabase.auth.getUser()
     
     if (user) {
+      // SMART ROUTING: Cek apakah profile sudah ada
       const { data: profile, error: profileError } = await supabase
         .from('profiles')
         .select('onboarding_completed')
         .eq('id', user.id)
         .single()
 
-      if (profileError) {
-        console.error('Profile fetch error:', profileError)
-        // Jika profile belum ada, mungkin user baru - redirect ke onboarding
+      // Jika profile tidak ada atau error, user baru → onboarding
+      if (profileError || !profile) {
+        console.log('New user detected, redirecting to onboarding')
         return NextResponse.redirect(`${origin}/onboarding`)
       }
 
-      if (!profile?.onboarding_completed) {
+      // Jika onboarding belum selesai → onboarding
+      if (!profile.onboarding_completed) {
         return NextResponse.redirect(`${origin}/onboarding`)
       }
+
+      // Jika sudah complete → ikuti next parameter atau default /home
+      return NextResponse.redirect(`${origin}${next}`)
     }
     
-    // Redirect tanpa code di URL
+    // Fallback ke next parameter
     return NextResponse.redirect(`${origin}${next}`)
   }
 
-  // Jika tidak ada code, redirect ke login
+  // Tidak ada code
   return NextResponse.redirect(`${origin}/auth/login?error=missing_code`)
 }
